@@ -38,11 +38,45 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import RegisterForm from '@/components/RegisterForm.vue'
 
+import {
+useAuth
+} from '@/composables/useAuth'
+
 const router = useRouter()
 
-const handleRegister = () => {
+const {
+register
+} = useAuth()
+
+const handleRegister = (
+
+name:string,
+email:string,
+password:string
+
+) => {
+
+try{
+
+register(
+name,
+email,
+password
+)
+
+alert(
+'Cadastro realizado com sucesso!'
+)
 
 router.push('/login')
+
+}catch(error:any){
+
+alert(
+error.message
+)
+
+}
 
 }
 

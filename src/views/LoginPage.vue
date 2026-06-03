@@ -55,11 +55,35 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import LoginForm from '@/components/LoginForm.vue'
 
+import {
+useAuth
+} from '@/composables/useAuth'
+
 const router = useRouter()
 
-const handleLogin = () => {
+const { login } = useAuth()
+
+const handleLogin = (
+email:string,
+password:string
+) => {
+
+try{
+
+login(
+email,
+password
+)
 
 router.push('/album')
+
+}catch(error:any){
+
+alert(
+error.message
+)
+
+}
 
 }
 

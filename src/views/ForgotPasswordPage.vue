@@ -36,13 +36,43 @@ IonContent
 import { useRouter } from 'vue-router'
 
 import AppHeader from '@/components/AppHeader.vue'
-import ResetPasswordForm from '@/components/ResetPasswordForm.vue'
+
+import ResetPasswordForm
+from '@/components/ResetPasswordForm.vue'
+
+import {
+useAuth
+} from '@/composables/useAuth'
 
 const router = useRouter()
 
-const handleReset = () => {
+const {
+resetPassword
+} = useAuth()
+
+const handleReset = (
+email:string
+) => {
+
+try{
+
+resetPassword(
+email
+)
+
+alert(
+'E-mail encontrado!'
+)
 
 router.push('/login')
+
+}catch(error:any){
+
+alert(
+error.message
+)
+
+}
 
 }
 
