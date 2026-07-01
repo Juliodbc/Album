@@ -5,33 +5,45 @@ export interface User {
   email: string
 }
 
+interface RegisteredUser extends User {
+  password: string
+}
+
 const user = ref<User | null>(
-  JSON.parse(
-    localStorage.getItem('user') || 'null'
-  )
+  JSON.parse(localStorage.getItem('user') || 'null')
 )
 
 export function useAuth() {
+
+  const getUsers = (): RegisteredUser[] => {
+    return JSON.parse(
+      localStorage.getItem('registeredUsers') || '[]'
+    )
+  }
+
+  const saveUsers = (
+    users: RegisteredUser[]
+  ) => {
+    localStorage.setItem(
+      'registeredUsers',
+      JSON.stringify(users)
+    )
+  }
 
   const login = (
     email: string,
     password: string
   ) => {
 
-    const registeredUser = JSON.parse(
-      localStorage.getItem('registeredUser') || 'null'
+    const users = getUsers()
+
+    const registeredUser = users.find(
+      user =>
+        user.email.toLowerCase() === email.toLowerCase() &&
+        user.password === password
     )
 
     if (!registeredUser) {
-      throw new Error(
-        'Nenhum usuário cadastrado'
-      )
-    }
-
-    if (
-      registeredUser.email !== email ||
-      registeredUser.password !== password
-    ) {
       throw new Error(
         'E-mail ou senha incorretos'
       )
@@ -66,14 +78,26 @@ export function useAuth() {
       )
     }
 
-    localStorage.setItem(
-      'registeredUser',
-      JSON.stringify({
-        name,
-        email,
-        password
-      })
+    const users = getUsers()
+
+    const alreadyExists = users.find(
+      user =>
+        user.email.toLowerCase() === email.toLowerCase()
     )
+
+    if (alreadyExists) {
+      throw new Error(
+        'Este e-mail já está cadastrado'
+      )
+    }
+
+    users.push({
+      name,
+      email,
+      password
+    })
+
+    saveUsers(users)
 
     return true
   }
@@ -89,19 +113,14 @@ export function useAuth() {
     email: string
   ) => {
 
-    const registeredUser = JSON.parse(
-      localStorage.getItem('registeredUser') || 'null'
+    const users = getUsers()
+
+    const registeredUser = users.find(
+      user =>
+        user.email.toLowerCase() === email.toLowerCase()
     )
 
     if (!registeredUser) {
-      throw new Error(
-        'Nenhum usuário cadastrado'
-      )
-    }
-
-    if (
-      registeredUser.email !== email
-    ) {
       throw new Error(
         'E-mail não encontrado'
       )
@@ -111,10 +130,7 @@ export function useAuth() {
   }
 
   const isAuthenticated = () => {
-
-    return !!localStorage.getItem(
-      'user'
-    )
+    return !!user.value
   }
 
   return {
@@ -132,4 +148,5 @@ export function useAuth() {
     isAuthenticated
 
   }
+
 }
