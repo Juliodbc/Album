@@ -30,7 +30,7 @@ IonPage,
 IonContent
 } from '@ionic/vue'
 
-import { computed } from 'vue'
+import { onMounted } from 'vue'
 
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
@@ -39,16 +39,16 @@ import StickerList from '@/components/StickerList.vue'
 import { useAlbum } from '@/composables/useAlbum'
 
 const {
-stickerList,
+filteredStickers: collectedOnly,
+filter,
+loadStickers,
 toggleCollected
 } = useAlbum()
 
-const collectedOnly =
-computed(() =>
-stickerList.value.filter(
-item => item.collected
-)
-)
+onMounted(() => {
+filter.value = 'collected'
+loadStickers()
+})
 
 </script>
 

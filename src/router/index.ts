@@ -36,6 +36,11 @@ const routes = [
 },
 
 {
+ path:'/achievements',
+ component:()=>import('@/views/AchievementsPage.vue')
+},
+
+{
  path:'/profile',
  component:()=>import('@/views/ProfilePage.vue')
 }

@@ -1,144 +1,83 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
+import { Sticker } from '@/data/stickers'
+import { useAuth } from '@/composables/useAuth'
 import {
-  stickers,
-  Sticker
-} from '@/data/stickers'
+  getAlbumStats,
+  listStickersFromDb,
+  toggleStickerCollected
+} from '@/services/database'
 
-const savedStickers =
-  localStorage.getItem('stickers')
-
-const stickerList =
-ref<Sticker[]>(
-
-  savedStickers
-    ? JSON.parse(savedStickers)
-    : stickers
-
-)
-
+const stickerList = ref<Sticker[]>([])
 const search = ref('')
 const filter = ref('all')
+const total = ref(0)
+const collected = ref(0)
+const pending = ref(0)
+const rareCollected = ref(0)
+const shinyCollected = ref(0)
+const progress = ref(0)
+const loading = ref(false)
 
 export function useAlbum() {
 
-  const save = () => {
+  const { user } = useAuth()
 
-    localStorage.setItem(
-      'stickers',
-      JSON.stringify(
-        stickerList.value
-      )
-    )
+  const loadStats = async () => {
+    if (!user.value?.id) return
 
+    const stats =
+      await getAlbumStats(user.value.id)
+
+    total.value = stats.total
+    collected.value = stats.collected
+    pending.value = stats.pending
+    rareCollected.value = stats.rareCollected
+    shinyCollected.value = stats.shinyCollected
+    progress.value = stats.progress
   }
 
-  const toggleCollected = (
+  const loadStickers = async () => {
+    if (!user.value?.id) return
+
+    loading.value = true
+
+    stickerList.value =
+      await listStickersFromDb(
+        user.value.id,
+        search.value,
+        filter.value
+      )
+
+    await loadStats()
+
+    loading.value = false
+  }
+
+  const toggleCollected = async (
     id: number
   ) => {
 
-    const sticker =
-      stickerList.value.find(
-        item => item.id === id
-      )
+    if (!user.value?.id) return
 
-    if (!sticker) return
+    await toggleStickerCollected(
+      user.value.id,
+      id
+    )
 
-    sticker.collected =
-      !sticker.collected
-
-    save()
+    await loadStickers()
 
   }
 
+  watch(
+    [search, filter],
+    () => {
+      loadStickers()
+    }
+  )
+
   const filteredStickers =
-  computed(() => {
-
-    return stickerList.value.filter(
-      sticker => {
-
-        const searchText =
-          search.value.toLowerCase()
-
-        const matchesSearch =
-
-          sticker.name
-          .toLowerCase()
-          .includes(searchText)
-
-          ||
-
-          sticker.team
-          .toLowerCase()
-          .includes(searchText)
-
-        if (
-          filter.value ===
-          'collected'
-        ) {
-
-          return (
-            matchesSearch &&
-            sticker.collected
-          )
-
-        }
-
-        if (
-          filter.value ===
-          'pending'
-        ) {
-
-          return (
-            matchesSearch &&
-            !sticker.collected
-          )
-
-        }
-
-        return matchesSearch
-
-      }
-    )
-
-  })
-
-  const total =
-  computed(() =>
-    stickerList.value.length
-  )
-
-  const collected =
-  computed(() =>
-
-    stickerList.value.filter(
-      sticker =>
-      sticker.collected
-    ).length
-
-  )
-
-  const pending =
-  computed(() =>
-
-    total.value -
-    collected.value
-
-  )
-
-  const progress =
-  computed(() =>
-
-    total.value === 0
-      ? 0
-      : Math.round(
-          (
-            collected.value /
-            total.value
-          ) * 100
-        )
-
-  )
+    computed(() => stickerList.value)
 
   return {
 
@@ -156,7 +95,17 @@ export function useAlbum() {
 
     pending,
 
+    rareCollected,
+
+    shinyCollected,
+
     progress,
+
+    loading,
+
+    loadStickers,
+
+    loadStats,
 
     toggleCollected
 

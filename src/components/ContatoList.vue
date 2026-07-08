@@ -30,7 +30,7 @@
   :message="editAlert.error"
   :inputs="editInputs"
   :buttons="[
-    {test: 'Cancelar', role: 'cancel', handler: closeEditAlert },
+    {text: 'Cancelar', role: 'cancel', handler: closeEditAlert },
     {text: 'Salvar', handler: salvarEdicao}
   ]"
   />
@@ -41,7 +41,7 @@
   message="Tem certeza que deseja excluir este contato?"
 
   :buttons="[
-    {test: 'Cancelar', role: 'cancel', handler: closeDeleteAlert },
+    {text: 'Cancelar', role: 'cancel', handler: closeDeleteAlert },
     {text: 'Excluir', role: 'destructive', handler: excluirContato}
   ]"
   />
@@ -123,13 +123,18 @@ function closeEditAlert() {
     editAlert.value.error = ''
 }
 
+function closeDeleteAlert() {
+    deleteAlert.value.open = false
+    deleteAlert.value.contatoId = null
+}
+
 async function salvarEdicao(values: any) {
  if (!editAlert.value.data.id) {
     return
  }
 
  const nome = values?.nome ?? editAlert.value.data.nome
- const email = values?.email ?? editAlert.value.data.id
+ const email = values?.email ?? editAlert.value.data.email
  const telefone = values?.telefone ?? editAlert.value.data.telefone
 
  if (!nome || !email) {
@@ -142,6 +147,16 @@ async function salvarEdicao(values: any) {
  closeEditAlert()
  load()
  return true
+}
+
+async function excluirContato() {
+ if (!deleteAlert.value.contatoId) {
+    return
+ }
+
+ await deleteContatoById(deleteAlert.value.contatoId)
+ closeDeleteAlert()
+ load()
 }
 
 </script>

@@ -63,14 +63,14 @@ const router = useRouter()
 
 const { login } = useAuth()
 
-const handleLogin = (
+const handleLogin = async (
 email:string,
 password:string
 ) => {
 
 try{
 
-login(
+await login(
 email,
 password
 )

@@ -41,6 +41,10 @@ v-model="filter"
 
 <p>Pendentes: {{ pending }}</p>
 
+<p>Raras: {{ rareCollected }}</p>
+
+<p>Brilhantes: {{ shinyCollected }}</p>
+
 <ion-progress-bar
 :value="progress / 100"
 />
@@ -80,6 +84,8 @@ IonCardContent,
 IonProgressBar
 } from '@ionic/vue'
 
+import { onMounted } from 'vue'
+
 import AppHeader from '@/components/AppHeader.vue'
 import BottomNav from '@/components/BottomNav.vue'
 import StickerList from '@/components/StickerList.vue'
@@ -94,8 +100,16 @@ total,
 collected,
 pending,
 progress,
+rareCollected,
+shinyCollected,
+loadStickers,
 toggleCollected
 } = useAlbum()
+
+onMounted(() => {
+filter.value = 'all'
+loadStickers()
+})
 
 </script>
 
