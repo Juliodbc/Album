@@ -22,6 +22,12 @@ alt=""
 <ion-card-content>
 
 <ion-badge
+:color="rarityColor"
+>
+{{ sticker.rarity }}
+</ion-badge>
+
+<ion-badge
 :color="
 sticker.collected
 ? 'success'
@@ -64,6 +70,8 @@ sticker.collected
 
 <script setup lang="ts">
 
+import { computed } from 'vue'
+
 import {
 IonCard,
 IonCardHeader,
@@ -74,13 +82,19 @@ IonButton,
 IonBadge
 } from '@ionic/vue'
 
-import {
+import type {
 Sticker
 } from '@/data/stickers'
 
-defineProps<{
+const props = defineProps<{
 sticker: Sticker
 }>()
+
+const rarityColor = computed(() => {
+  if (props.sticker.rarity === 'brilhante') return 'tertiary'
+  if (props.sticker.rarity === 'rara') return 'primary'
+  return 'medium'
+})
 
 defineEmits([
 'toggle'

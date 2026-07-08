@@ -48,7 +48,7 @@ const {
 register
 } = useAuth()
 
-const handleRegister = (
+const handleRegister = async (
 
 name:string,
 email:string,
@@ -58,7 +58,7 @@ password:string
 
 try{
 
-register(
+await register(
 name,
 email,
 password

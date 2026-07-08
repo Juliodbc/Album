@@ -1,12 +1,14 @@
 import { ref } from 'vue'
 
+import {
+  addUsuario,
+  realizarLogin
+} from '@/services/database'
+
 export interface User {
+  id: number
   name: string
   email: string
-}
-
-interface RegisteredUser extends User {
-  password: string
 }
 
 const user = ref<User | null>(
@@ -15,33 +17,16 @@ const user = ref<User | null>(
 
 export function useAuth() {
 
-  const getUsers = (): RegisteredUser[] => {
-    return JSON.parse(
-      localStorage.getItem('registeredUsers') || '[]'
-    )
-  }
-
-  const saveUsers = (
-    users: RegisteredUser[]
-  ) => {
-    localStorage.setItem(
-      'registeredUsers',
-      JSON.stringify(users)
-    )
-  }
-
-  const login = (
+  const login = async (
     email: string,
     password: string
   ) => {
 
-    const users = getUsers()
-
-    const registeredUser = users.find(
-      user =>
-        user.email.toLowerCase() === email.toLowerCase() &&
-        user.password === password
-    )
+    const registeredUser =
+      await realizarLogin(
+        email,
+        password
+      )
 
     if (!registeredUser) {
       throw new Error(
@@ -50,7 +35,8 @@ export function useAuth() {
     }
 
     user.value = {
-      name: registeredUser.name,
+      id: registeredUser.id,
+      name: registeredUser.nome,
       email: registeredUser.email
     }
 
@@ -62,7 +48,7 @@ export function useAuth() {
     return true
   }
 
-  const register = (
+  const register = async (
     name: string,
     email: string,
     password: string
@@ -78,26 +64,18 @@ export function useAuth() {
       )
     }
 
-    const users = getUsers()
-
-    const alreadyExists = users.find(
-      user =>
-        user.email.toLowerCase() === email.toLowerCase()
-    )
-
-    if (alreadyExists) {
+    try {
+      await addUsuario(
+        name.trim(),
+        email.trim(),
+        '',
+        password
+      )
+    } catch (error) {
       throw new Error(
         'Este e-mail já está cadastrado'
       )
     }
-
-    users.push({
-      name,
-      email,
-      password
-    })
-
-    saveUsers(users)
 
     return true
   }
@@ -113,16 +91,9 @@ export function useAuth() {
     email: string
   ) => {
 
-    const users = getUsers()
-
-    const registeredUser = users.find(
-      user =>
-        user.email.toLowerCase() === email.toLowerCase()
-    )
-
-    if (!registeredUser) {
+    if (!email.trim()) {
       throw new Error(
-        'E-mail não encontrado'
+        'Informe o e-mail cadastrado'
       )
     }
 
