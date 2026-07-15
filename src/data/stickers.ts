@@ -7,6 +7,8 @@ export interface Sticker {
   image: string
   rarity: StickerRarity
   collected: boolean
+  favorite?: boolean
+  collected_at?: string | null
 }
 
 export const stickers: Sticker[] = [

@@ -44,6 +44,24 @@ sticker.collected
 </ion-badge>
 
 <ion-button
+fill="clear"
+class="favorite-btn"
+@click="$emit('favorite', sticker.id)"
+>
+<ion-icon
+:icon="favoriteIcon"
+/>
+{{ sticker.favorite ? 'Favorita' : 'Favoritar' }}
+</ion-button>
+
+<p
+v-if="sticker.collected && sticker.collected_at"
+class="collected-at"
+>
+Coletada em {{ formattedCollectedAt }}
+</p>
+
+<ion-button
 expand="block"
 class="btn"
 @click="
@@ -79,8 +97,14 @@ IonCardTitle,
 IonCardSubtitle,
 IonCardContent,
 IonButton,
-IonBadge
+IonBadge,
+IonIcon
 } from '@ionic/vue'
+
+import {
+heart,
+heartOutline
+} from 'ionicons/icons'
 
 import type {
 Sticker
@@ -96,8 +120,25 @@ const rarityColor = computed(() => {
   return 'medium'
 })
 
+const favoriteIcon = computed(() => {
+  return props.sticker.favorite ? heart : heartOutline
+})
+
+const formattedCollectedAt = computed(() => {
+  if (!props.sticker.collected_at) return ''
+
+  return new Intl.DateTimeFormat(
+    'pt-BR',
+    {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }
+  ).format(new Date(props.sticker.collected_at))
+})
+
 defineEmits([
-'toggle'
+'toggle',
+'favorite'
 ])
 
 </script>

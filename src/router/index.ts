@@ -36,6 +36,11 @@ const routes = [
 },
 
 {
+ path:'/statistics',
+ component:()=>import('@/views/StatsPage.vue')
+},
+
+{
  path:'/achievements',
  component:()=>import('@/views/AchievementsPage.vue')
 },

@@ -15,6 +15,8 @@ const stats = ref<AlbumStats>({
   pending: 0,
   rareCollected: 0,
   shinyCollected: 0,
+  favoriteCount: 0,
+  score: 0,
   progress: 0
 })
 const loading = ref(false)
