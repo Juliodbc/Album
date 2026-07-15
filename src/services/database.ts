@@ -17,6 +17,8 @@ export interface AlbumStats {
   pending: number;
   rareCollected: number;
   shinyCollected: number;
+  favoriteCount: number;
+  score: number;
   progress: number;
 }
 
@@ -176,6 +178,8 @@ async function ensureDatabase() {
   await executeSafely("ALTER TABLE usuarios ADD COLUMN senha TEXT;");
   await migrateUsuariosSchema();
 
+  await executeSafely("ALTER TABLE sticker_status ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;");
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS stickers (
       id INTEGER PRIMARY KEY,
@@ -192,6 +196,7 @@ async function ensureDatabase() {
       user_id INTEGER NOT NULL,
       sticker_id INTEGER NOT NULL,
       collected INTEGER NOT NULL DEFAULT 0,
+      favorite INTEGER NOT NULL DEFAULT 0,
       collected_at TEXT,
       UNIQUE(user_id, sticker_id),
       FOREIGN KEY(user_id) REFERENCES usuarios(id),
@@ -224,6 +229,19 @@ async function ensureDatabase() {
 
   await seedStickers();
   await seedAchievements();
+
+  // Seed a default test account (if not already present)
+  try {
+    await getDb().run(
+      `
+        INSERT OR IGNORE INTO usuarios (nome, email, telefone, senha)
+        VALUES (?, ?, ?, ?)
+      `,
+      ['Julio', 'julio@gmail.com', null, '14042009'],
+    );
+  } catch (e) {
+    console.warn('Não foi possível inserir usuário de teste', e);
+  }
 
   initialized = true;
 }
@@ -453,6 +471,10 @@ export async function listStickersFromDb(
     where += " AND COALESCE(ss.collected, 0) = 0";
   }
 
+  if (filter === "favorite") {
+    where += " AND COALESCE(ss.favorite, 0) = 1";
+  }
+
   const result = await getDb().query(
     `
       SELECT
@@ -461,7 +483,9 @@ export async function listStickersFromDb(
         s.team,
         s.image,
         s.rarity,
-        COALESCE(ss.collected, 0) AS collected
+        COALESCE(ss.collected, 0) AS collected,
+        COALESCE(ss.favorite, 0) AS favorite,
+        ss.collected_at AS collected_at
       FROM stickers s
       LEFT JOIN sticker_status ss
         ON ss.sticker_id = s.id
@@ -476,6 +500,8 @@ export async function listStickersFromDb(
   return (result.values || []).map((sticker: any) => ({
     ...sticker,
     collected: Boolean(sticker.collected),
+    favorite: Boolean(sticker.favorite),
+    collected_at: sticker.collected_at || null,
   }));
 }
 
@@ -488,7 +514,16 @@ export async function getAlbumStats(userId: number): Promise<AlbumStats> {
         COUNT(s.id) AS total,
         SUM(CASE WHEN COALESCE(ss.collected, 0) = 1 THEN 1 ELSE 0 END) AS collected,
         SUM(CASE WHEN COALESCE(ss.collected, 0) = 1 AND s.rarity = 'rara' THEN 1 ELSE 0 END) AS rareCollected,
-        SUM(CASE WHEN COALESCE(ss.collected, 0) = 1 AND s.rarity = 'brilhante' THEN 1 ELSE 0 END) AS shinyCollected
+      SUM(CASE WHEN COALESCE(ss.collected, 0) = 1 AND s.rarity = 'brilhante' THEN 1 ELSE 0 END) AS shinyCollected,
+      SUM(CASE WHEN COALESCE(ss.favorite, 0) = 1 THEN 1 ELSE 0 END) AS favoriteCount,
+      SUM(
+        CASE
+          WHEN COALESCE(ss.collected, 0) = 1 AND s.rarity = 'brilhante' THEN 50
+          WHEN COALESCE(ss.collected, 0) = 1 AND s.rarity = 'rara' THEN 20
+          WHEN COALESCE(ss.collected, 0) = 1 THEN 10
+          ELSE 0
+        END
+      ) AS score
       FROM stickers s
       LEFT JOIN sticker_status ss
         ON ss.sticker_id = s.id
@@ -500,6 +535,7 @@ export async function getAlbumStats(userId: number): Promise<AlbumStats> {
   const row = result.values?.[0] || {};
   const total = Number(row.total || 0);
   const collected = Number(row.collected || 0);
+  const score = Number(row.score || 0);
   const progress = total === 0 ? 0 : Math.round((collected / total) * 100);
 
   return {
@@ -508,6 +544,8 @@ export async function getAlbumStats(userId: number): Promise<AlbumStats> {
     pending: total - collected,
     rareCollected: Number(row.rareCollected || 0),
     shinyCollected: Number(row.shinyCollected || 0),
+    favoriteCount: Number(row.favoriteCount || 0),
+    score,
     progress,
   };
 }
@@ -517,7 +555,7 @@ export async function toggleStickerCollected(userId: number, stickerId: number) 
 
   const current = await getDb().query(
     `
-      SELECT collected
+      SELECT collected, favorite
       FROM sticker_status
       WHERE user_id = ?
       AND sticker_id = ?
@@ -529,21 +567,57 @@ export async function toggleStickerCollected(userId: number, stickerId: number) 
   const isCollected = Boolean(current.values?.[0]?.collected);
   const nextCollected = isCollected ? 0 : 1;
   const collectedAt = nextCollected ? new Date().toISOString() : null;
+  const favorite = current.values?.[0]?.favorite || 0;
 
   await getDb().run(
     `
       INSERT INTO sticker_status
-      (user_id, sticker_id, collected, collected_at)
-      VALUES (?, ?, ?, ?)
+      (user_id, sticker_id, collected, favorite, collected_at)
+      VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(user_id, sticker_id)
       DO UPDATE SET
         collected = excluded.collected,
+        favorite = excluded.favorite,
         collected_at = excluded.collected_at
     `,
-    [userId, stickerId, nextCollected, collectedAt],
+    [userId, stickerId, nextCollected, favorite, collectedAt],
   );
 
   await recalculateAchievements(userId);
+}
+
+export async function toggleStickerFavorite(userId: number, stickerId: number) {
+  await ensureDatabase();
+
+  const current = await getDb().query(
+    `
+      SELECT collected, favorite, collected_at
+      FROM sticker_status
+      WHERE user_id = ?
+      AND sticker_id = ?
+      LIMIT 1
+    `,
+    [userId, stickerId],
+  );
+
+  const isFavorite = Boolean(current.values?.[0]?.favorite);
+  const favoriteValue = isFavorite ? 0 : 1;
+  const collected = current.values?.[0]?.collected || 0;
+  const collectedAt = current.values?.[0]?.collected_at || null;
+
+  await getDb().run(
+    `
+      INSERT INTO sticker_status
+      (user_id, sticker_id, collected, favorite, collected_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, sticker_id)
+      DO UPDATE SET
+        favorite = excluded.favorite,
+        collected = excluded.collected,
+        collected_at = excluded.collected_at
+    `,
+    [userId, stickerId, collected, favoriteValue, collectedAt],
+  );
 }
 
 export async function recalculateAchievements(userId: number) {
@@ -626,5 +700,33 @@ export async function listAchievements(userId: number): Promise<Achievement[]> {
   return (result.values || []).map((achievement: any) => ({
     ...achievement,
     desbloqueada: Boolean(achievement.desbloqueada),
+  }));
+}
+
+export async function listCollectionHistory(userId: number) {
+  await ensureDatabase();
+
+  const result = await getDb().query(
+    `
+      SELECT
+        s.id,
+        s.name,
+        s.team,
+        s.image,
+        s.rarity,
+        ss.collected_at
+      FROM sticker_status ss
+      JOIN stickers s
+        ON s.id = ss.sticker_id
+      WHERE ss.user_id = ?
+        AND ss.collected = 1
+      ORDER BY ss.collected_at DESC
+    `,
+    [userId],
+  );
+
+  return (result.values || []).map((item: any) => ({
+    ...item,
+    collected_at: item.collected_at || null,
   }));
 }

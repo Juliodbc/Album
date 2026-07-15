@@ -5,8 +5,19 @@ import { useAuth } from '@/composables/useAuth'
 import {
   getAlbumStats,
   listStickersFromDb,
-  toggleStickerCollected
+  toggleStickerCollected,
+  toggleStickerFavorite,
+  listCollectionHistory
 } from '@/services/database'
+
+interface CollectionHistoryItem {
+  id: number
+  name: string
+  team: string
+  image: string
+  rarity: string
+  collected_at: string | null
+}
 
 const stickerList = ref<Sticker[]>([])
 const search = ref('')
@@ -16,7 +27,10 @@ const collected = ref(0)
 const pending = ref(0)
 const rareCollected = ref(0)
 const shinyCollected = ref(0)
+const favoriteCount = ref(0)
+const score = ref(0)
 const progress = ref(0)
+const history = ref<CollectionHistoryItem[]>([])
 const loading = ref(false)
 
 export function useAlbum() {
@@ -34,6 +48,8 @@ export function useAlbum() {
     pending.value = stats.pending
     rareCollected.value = stats.rareCollected
     shinyCollected.value = stats.shinyCollected
+    favoriteCount.value = stats.favoriteCount
+    score.value = stats.score
     progress.value = stats.progress
   }
 
@@ -49,9 +65,16 @@ export function useAlbum() {
         filter.value
       )
 
-    await loadStats()
+    await Promise.all([loadStats(), loadHistory()])
 
     loading.value = false
+  }
+
+  const loadHistory = async () => {
+    if (!user.value?.id) return
+
+    history.value =
+      await listCollectionHistory(user.value.id)
   }
 
   const toggleCollected = async (
@@ -67,6 +90,19 @@ export function useAlbum() {
 
     await loadStickers()
 
+  }
+
+  const toggleFavorite = async (
+    id: number
+  ) => {
+    if (!user.value?.id) return
+
+    await toggleStickerFavorite(
+      user.value.id,
+      id
+    )
+
+    await loadStickers()
   }
 
   watch(
@@ -99,7 +135,13 @@ export function useAlbum() {
 
     shinyCollected,
 
+    favoriteCount,
+
+    score,
+
     progress,
+
+    history,
 
     loading,
 
@@ -107,7 +149,11 @@ export function useAlbum() {
 
     loadStats,
 
-    toggleCollected
+    loadHistory,
+
+    toggleCollected,
+
+    toggleFavorite
 
   }
 }

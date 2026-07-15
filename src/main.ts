@@ -3,6 +3,8 @@ import App from './App.vue'
 import router from './router';
 
 import { IonicVue } from '@ionic/vue';
+// jeep-sqlite web component loader (needed for web sqlite support)
+import { defineCustomElements as defineJeep } from 'jeep-sqlite/loader';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
@@ -37,6 +39,14 @@ import './theme/variables.css';
 const app = createApp(App)
   .use(IonicVue)
   .use(router);
+
+// Register jeep-sqlite custom element when running on web
+try {
+  defineJeep(window as any);
+} catch (e) {
+  // ignore if loader not available in the current environment
+  console.warn('jeep-sqlite loader not available', e);
+}
 
 router.isReady().then(() => {
   app.mount('#app');

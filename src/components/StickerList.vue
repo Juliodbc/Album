@@ -19,6 +19,12 @@ $emit(
 $event
 )
 "
+@favorite="
+$emit(
+'favorite',
+$event
+)
+"
 
 />
 
@@ -39,7 +45,8 @@ stickers: Sticker[]
 }>()
 
 defineEmits([
-'toggle'
+'toggle',
+'favorite'
 ])
 
 </script>

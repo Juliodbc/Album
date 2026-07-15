@@ -29,6 +29,10 @@ v-model="filter"
 <ion-label>Pendentes</ion-label>
 </ion-segment-button>
 
+<ion-segment-button value="favorite">
+<ion-label>Favoritas</ion-label>
+</ion-segment-button>
+
 </ion-segment>
 
 <ion-card>
@@ -45,6 +49,10 @@ v-model="filter"
 
 <p>Brilhantes: {{ shinyCollected }}</p>
 
+<p>Favoritas: {{ favoriteCount }}</p>
+
+<p>Pontos: {{ score }}</p>
+
 <ion-progress-bar
 :value="progress / 100"
 />
@@ -58,6 +66,7 @@ v-model="filter"
 <StickerList
 :stickers="filteredStickers"
 @toggle="toggleCollected"
+@favorite="toggleFavorite"
 />
 
 </div>
@@ -102,8 +111,11 @@ pending,
 progress,
 rareCollected,
 shinyCollected,
+favoriteCount,
+score,
 loadStickers,
-toggleCollected
+toggleCollected,
+toggleFavorite
 } = useAlbum()
 
 onMounted(() => {

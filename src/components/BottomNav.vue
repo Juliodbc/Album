@@ -22,6 +22,13 @@ Colecao
 
 <ion-button
 fill="clear"
+@click="router.push('/statistics')"
+>
+Estatísticas
+</ion-button>
+
+<ion-button
+fill="clear"
 @click="router.push('/achievements')"
 >
 Conquistas
