@@ -433,6 +433,21 @@ export async function findUsuarioById(id: number) {
   return result.values?.[0] || null;
 }
 
+export async function findUsuarioByEmail(email: string) {
+  await ensureDatabase();
+
+  const query = `
+    SELECT *
+    FROM usuarios
+    WHERE lower(email) = lower(?)
+    LIMIT 1
+  `;
+
+  const result = await getDb().query(query, [email]);
+
+  return result.values?.[0] || null;
+}
+
 export async function listUsuarios() {
   await ensureDatabase();
   const result = await getDb().query("SELECT * FROM usuarios");

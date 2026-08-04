@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import {
   addUsuario,
   realizarLogin
+  , findUsuarioByEmail
 } from '@/services/database'
 
 export interface User {
@@ -21,17 +22,39 @@ export function useAuth() {
     email: string,
     password: string
   ) => {
+    // Demo login: when VITE_DEMO_LOGIN is set to "true", accept any email
+    // and create a user automatically if it does not exist. Useful for
+    // demonstrations on emulator where real credentials are not needed.
+    const demo = import.meta.env.VITE_DEMO_LOGIN === 'true'
 
-    const registeredUser =
-      await realizarLogin(
-        email,
-        password
-      )
+    if (demo) {
+      let existing = await findUsuarioByEmail(email)
+
+      if (!existing) {
+        const defaultName = email.split('@')[0] || 'Usuário'
+        await addUsuario(defaultName, email, '', password)
+        existing = await findUsuarioByEmail(email)
+      }
+
+      if (!existing) {
+        throw new Error('Não foi possível criar usuário de demonstração')
+      }
+
+      user.value = {
+        id: existing.id,
+        name: existing.nome,
+        email: existing.email
+      }
+
+      localStorage.setItem('user', JSON.stringify(user.value))
+
+      return true
+    }
+
+    const registeredUser = await realizarLogin(email, password)
 
     if (!registeredUser) {
-      throw new Error(
-        'E-mail ou senha incorretos'
-      )
+      throw new Error('E-mail ou senha incorretos')
     }
 
     user.value = {
@@ -40,10 +63,7 @@ export function useAuth() {
       email: registeredUser.email
     }
 
-    localStorage.setItem(
-      'user',
-      JSON.stringify(user.value)
-    )
+    localStorage.setItem('user', JSON.stringify(user.value))
 
     return true
   }
