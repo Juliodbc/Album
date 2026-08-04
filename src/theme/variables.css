@@ -1,7 +1,22 @@
 :root {
+	/* Harmonized color palette */
+	--ion-color-primary: #2C3E50; /* deep slate */
+	--ion-color-primary-contrast: #ffffff;
+	--ion-color-primary-shade: #243642;
+	--ion-color-primary-tint: #3b5566;
 
---ion-color-primary:#0057B8;
---ion-color-secondary:#00A651;
---ion-color-warning:#FFD700;
+	--ion-color-secondary: #16A085; /* teal */
+	--ion-color-secondary-contrast: #ffffff;
+	--ion-color-secondary-shade: #13806e;
+	--ion-color-secondary-tint: #2bb39a;
 
+	--ion-color-tertiary: #8E44AD; /* purple for shiny */
+	--ion-color-tertiary-contrast: #ffffff;
+
+	--ion-color-success: #27AE60;
+	--ion-color-warning: #F39C12;
+
+	--ion-background-color: #f6f8fa;
+	--ion-text-color: #1f2d33;
+	--ion-card-background: #ffffff;
 }

@@ -571,7 +571,7 @@ export async function toggleStickerCollected(userId: number, stickerId: number) 
   // Perform the update and achievements recalculation inside a single
   // transaction so the unlock logic sees a consistent DB state and the
   // operation survives app restarts.
-  await getDb().execute('BEGIN TRANSACTION;');
+  await getDb().run('BEGIN TRANSACTION;');
   try {
     const current = await getDb().query(
       `
@@ -605,9 +605,9 @@ export async function toggleStickerCollected(userId: number, stickerId: number) 
 
     await recalculateAchievements(userId);
 
-    await getDb().execute('COMMIT;');
+    await getDb().run('COMMIT;');
   } catch (err) {
-    await getDb().execute('ROLLBACK;');
+    await getDb().run('ROLLBACK;');
     throw err;
   }
 }

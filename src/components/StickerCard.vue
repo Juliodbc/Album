@@ -1,6 +1,6 @@
 <template>
 
-<ion-card class="sticker-card">
+<ion-card class="sticker-card" :style="{ borderColor: borderColor }">
 
 <img
 :src="sticker.image"
@@ -120,6 +120,12 @@ const rarityColor = computed(() => {
   return 'medium'
 })
 
+const borderColor = computed(() => {
+  if (props.sticker.rarity === 'brilhante') return 'var(--ion-color-tertiary)'
+  if (props.sticker.rarity === 'rara') return 'var(--ion-color-secondary)'
+  return 'rgba(0,0,0,0.06)'
+})
+
 const favoriteIcon = computed(() => {
   return props.sticker.favorite ? heart : heartOutline
 })
@@ -147,17 +153,12 @@ defineEmits([
 
 .sticker-card{
 
-border-radius:18px;
-
+border-radius:12px;
 overflow:hidden;
-
-border:3px solid #FFD700;
-
-box-shadow:
-0 8px 25px
-rgba(0,0,0,.15);
-
-transition:.3s;
+border:2px solid var(--ion-card-border, rgba(0,0,0,0.06));
+background:var(--ion-card-background);
+box-shadow:0 6px 18px rgba(31,45,51,0.06);
+transition:transform .22s ease, box-shadow .22s ease;
 
 }
 
@@ -171,8 +172,7 @@ translateY(-5px);
 img{
 
 width:100%;
-height:220px;
-
+height:200px;
 object-fit:cover;
 
 }
@@ -181,6 +181,14 @@ object-fit:cover;
 
 margin-top:12px;
 
+
+@media (max-width: 600px) {
+  img { height: 160px; }
+}
+
+@media (min-width: 1200px) {
+  img { height: 240px; }
+}
 }
 
 </style>
