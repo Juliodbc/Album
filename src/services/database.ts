@@ -553,37 +553,48 @@ export async function getAlbumStats(userId: number): Promise<AlbumStats> {
 export async function toggleStickerCollected(userId: number, stickerId: number) {
   await ensureDatabase();
 
-  const current = await getDb().query(
-    `
-      SELECT collected, favorite
-      FROM sticker_status
-      WHERE user_id = ?
-      AND sticker_id = ?
-      LIMIT 1
-    `,
-    [userId, stickerId],
-  );
+  // Perform the update and achievements recalculation inside a single
+  // transaction so the unlock logic sees a consistent DB state and the
+  // operation survives app restarts.
+  await getDb().execute('BEGIN TRANSACTION;');
+  try {
+    const current = await getDb().query(
+      `
+        SELECT collected, favorite
+        FROM sticker_status
+        WHERE user_id = ?
+        AND sticker_id = ?
+        LIMIT 1
+      `,
+      [userId, stickerId],
+    );
 
-  const isCollected = Boolean(current.values?.[0]?.collected);
-  const nextCollected = isCollected ? 0 : 1;
-  const collectedAt = nextCollected ? new Date().toISOString() : null;
-  const favorite = current.values?.[0]?.favorite || 0;
+    const isCollected = Boolean(current.values?.[0]?.collected);
+    const nextCollected = isCollected ? 0 : 1;
+    const collectedAt = nextCollected ? new Date().toISOString() : null;
+    const favorite = current.values?.[0]?.favorite || 0;
 
-  await getDb().run(
-    `
-      INSERT INTO sticker_status
-      (user_id, sticker_id, collected, favorite, collected_at)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(user_id, sticker_id)
-      DO UPDATE SET
-        collected = excluded.collected,
-        favorite = excluded.favorite,
-        collected_at = excluded.collected_at
-    `,
-    [userId, stickerId, nextCollected, favorite, collectedAt],
-  );
+    await getDb().run(
+      `
+        INSERT INTO sticker_status
+        (user_id, sticker_id, collected, favorite, collected_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, sticker_id)
+        DO UPDATE SET
+          collected = excluded.collected,
+          favorite = excluded.favorite,
+          collected_at = excluded.collected_at
+      `,
+      [userId, stickerId, nextCollected, favorite, collectedAt],
+    );
 
-  await recalculateAchievements(userId);
+    await recalculateAchievements(userId);
+
+    await getDb().execute('COMMIT;');
+  } catch (err) {
+    await getDb().execute('ROLLBACK;');
+    throw err;
+  }
 }
 
 export async function toggleStickerFavorite(userId: number, stickerId: number) {
